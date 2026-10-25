@@ -1,0 +1,16 @@
+[package]
+name = "rs-mcp"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "A small MCP server in Rust: notes in PostgreSQL, exposed to AI clients as MCP tools over stdio"
+license = "MIT"
+
+[dependencies]
+anyhow = "1.0.104"
+rmcp = { version = "3.7.0", features = ["server", "macros", "transport-io"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "signal"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
