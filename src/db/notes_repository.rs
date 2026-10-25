@@ -2,10 +2,12 @@
 //! rules (lengths, page sizes) are checked by the callers before they get here.
 
 use chrono::{DateTime, Utc};
+use schemars::JsonSchema;
+use serde::Serialize;
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, FromRow)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, FromRow, JsonSchema)]
 pub struct Note {
     pub id: Uuid,
     pub title: String,

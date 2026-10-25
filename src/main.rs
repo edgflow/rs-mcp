@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
         .context("database migrations failed")?;
     tracing::info!("database ready");
 
-    let service = match NotesServer.serve(stdio()).await {
+    let service = match NotesServer::new(pool.clone()).serve(stdio()).await {
         Ok(service) => service,
         // A client may probe the server (server/discover) and leave without
         // starting a session; that is a normal disconnect, not a failure.
