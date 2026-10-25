@@ -24,9 +24,11 @@ async fn main() -> anyhow::Result<()> {
     let pool = db::connect(&config.database_url)
         .await
         .context("cannot connect to PostgreSQL (check DATABASE_URL)")?;
-    db::migrate(&pool)
-        .await
-        .context("database migrations failed")?;
+    if config.migrate_on_startup {
+        db::migrate(&pool)
+            .await
+            .context("database migrations failed")?;
+    }
     tracing::info!("database ready");
 
     let service = match NotesServer::new(pool.clone()).serve(stdio()).await {
