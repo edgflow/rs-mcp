@@ -4,17 +4,30 @@
 //! exchanges JSON-RPC messages with it on stdin and stdout. Because stdout
 //! carries the protocol, every log line goes to stderr.
 
-mod server;
-
 use anyhow::Context;
 use rmcp::{ServiceExt, service::ServerInitializeError, transport::stdio};
+use rs_mcp::{config::Config, db, server::NotesServer};
 use tracing_subscriber::EnvFilter;
-
-use crate::server::NotesServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // A local .env is optional; variables already in the environment win.
+    let dotenv = dotenvy::dotenv();
     init_logging();
+    if let Err(error) = dotenv
+        && !error.not_found()
+    {
+        tracing::warn!(%error, "ignoring unreadable .env file");
+    }
+
+    let config = Config::from_env()?;
+    let pool = db::connect(&config.database_url)
+        .await
+        .context("cannot connect to PostgreSQL (check DATABASE_URL)")?;
+    db::migrate(&pool)
+        .await
+        .context("database migrations failed")?;
+    tracing::info!("database ready");
 
     let service = match NotesServer.serve(stdio()).await {
         Ok(service) => service,
@@ -22,6 +35,7 @@ async fn main() -> anyhow::Result<()> {
         // starting a session; that is a normal disconnect, not a failure.
         Err(ServerInitializeError::ConnectionClosed(_)) => {
             tracing::info!("client disconnected before starting a session");
+            pool.close().await;
             return Ok(());
         }
         Err(error) => return Err(error).context("failed to start the MCP service on stdio"),
@@ -38,6 +52,7 @@ async fn main() -> anyhow::Result<()> {
 
     let reason = service.waiting().await.context("MCP service task failed")?;
     tracing::info!(?reason, "MCP server stopped");
+    pool.close().await;
     Ok(())
 }
 
